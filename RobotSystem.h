@@ -40,6 +40,7 @@ struct Movement {
 
   int sqrt
 
+  // --MAKE COMPATIBLE WITH CONTROLLER
   void move(int x, int y) {
     int leftSpeed = x * abs(x) + y * abs(y);
     int rightSpeed = -x * abs(x) + y * abs(y)
