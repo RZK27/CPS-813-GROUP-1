@@ -1,6 +1,26 @@
-#include <RobotSystem.h>;
+#include "RobotSystem.h";
 
-Robot robot(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+Robot robot (
+//  PINS:
+//    Movement:
+//      Wheels | Speed | Direction |
+//      Left:  |       |           |
+                 0,      0,
+//      Right: |       |           |
+                 0,      0,
+//    
+//    Sensors:
+//      IRs | Left | Right |
+              0,     0,
+//
+//      Ultrasonics | Trigger | Echo |
+//      Left:       |         |      |
+                      0,        0,
+//      Middle:     |         |      |
+                      0,        0,
+//      Right:      |         |      |
+                      0,        0
+);
 
 void setup(){
 }
