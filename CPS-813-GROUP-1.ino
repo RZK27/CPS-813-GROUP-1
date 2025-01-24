@@ -4,10 +4,10 @@ const int right_direction_pin = 0;
 const int left_direction_pin = 0;
 
 void setup(){
-    pinMode(right_speed_pin, OUTPUT);
-    pinMode(left_speed_pin, OUTPUT);
-    pinMode(right_direction_pin, OUTPUT);
-    pinMode(left_direction_pin, OUTPUT);
+  pinMode(right_speed_pin, OUTPUT);
+  pinMode(left_speed_pin, OUTPUT);
+  pinMode(right_direction_pin, OUTPUT);
+  pinMode(left_direction_pin, OUTPUT);
 }
 
 void loop() {
@@ -36,29 +36,21 @@ void loop() {
 
 //--MOVEMENT----
 
+void setSpeed(int speed, int speed_pin, int direction_pin){
+    if (speed > 0) {
+      digitalWrite(direction_pin, HIGH);
+  } else {
+      digitalWrite(direction_pin, LOW);
+  } analogWrite(speed_pin, abs(speed));
+}
+
 // --add optional argument for time spent doing action (do not use delay)
 // moves robot according to x (rotation) and y (forward or backward) arguments
 // x and y are expected to be between -10 and 10 (inclusive)
 // the speeds of move will end up between -100 and 100
 void move(int x, int y){
-    int left_speed = x * x + y * y;
-    int right_speed = -x * x + y * y;
-
-    if (left_speed > 0) {
-        digitalWrite(left_direction_pin, HIGH);
-        analogWrite(left_speed_pin, left_speed);
-    } else {
-        digitalWrite(left_direction_pin, LOW);
-        analogWrite(left_speed_pin, -left_speed);
-    }
-
-    if (right_speed > 0) {
-        digitalWrite(right_direction_pin, HIGH);
-        analogWrite(right_speed_pin, right_speed);
-    } else {
-        digitalWrite(right_direction_pin, LOW);
-        analogWrite(right_speed_pin, -right_speed);
-    }
+  setSpeed(x * abs(x) + y * abs(y), left_speed_pin, left_direction_pin);
+  setSpeed(-x * abs(x) + y * abs(y), right_speed_pin, right_direction_pin);
 }
 
 void brake(){
@@ -83,6 +75,17 @@ void rotateRight(){
 
 //--SENSORS----
 
-void readIR();
+void readIR(){
 
-void readUltrasonic();
+}
+
+int readUltrasonic(){
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig, LOW);
+
+  int distance = pulseIn(echo, HIGH, 5800) * 0.017;
+  return distance;
+}
