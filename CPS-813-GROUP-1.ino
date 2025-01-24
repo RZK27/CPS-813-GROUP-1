@@ -1,91 +1,172 @@
-const int right_speed_pin = 0;
-const int left_speed_pin = 0;
-const int right_direction_pin = 0;
-const int left_direction_pin = 0;
+struct Wheels {
+  int speedPin;
+  int directionPin;
+
+  int speed;
+  int direction;
+  
+  Wheels(int speedPin, int directionPin) {
+    this->speedPin = speedPin;
+    this->directionPin = directionPin;
+
+    speed = 0;
+    direction = HIGH;
+
+    pinMode(speedPin, OUTPUT);
+    pinMode(directionPin, OUTPUT);
+  }
+
+  void setSpeed(int speed) {
+    if (speed > 0) {
+      direction = HIGH;
+    } else {
+      direction = LOW;
+    } speed = abs(speed);
+
+    digitalWrite(directionPin, direction);
+    analogWrite(speedPin, speed);
+  }
+};
+
+struct Movement {
+  Wheels leftWheels;
+  Wheels rightWheels;
+
+  Movement(int leftSpeedPin, int leftDirectionPin, int rightSpeedPin, int rightDirectionPin)
+      : leftWheels(leftSpeedPin, leftDirectionPin), rightWheels(rightSpeedPin, rightDirectionPin) {}
+
+  void move(int x, int y) {
+    leftWheels.setSpeed(x * abs(x) + y * abs(y));
+    rightWheels.setSpeed(-x * abs(x) + y * abs(y));
+  }
+
+  void brake() {
+    move(0, 0);
+  }
+
+  void forward() {
+    move(0, 7);
+  }
+
+  void backward() {
+    move(0, -7);
+  }
+
+  void rotateLeft() {
+    move(-7, 0);
+  }
+
+  void rotateRight() {
+    move(7, 0);
+  }
+};
+
+struct Ultrasonic {
+  int triggerPin;
+  int echoPin;
+
+  int distance;
+  
+  Ultrasonic(int triggerPin, int echoPin) {
+    this->triggerPin = triggerPin;
+    this->echoPin = echoPin;
+    
+    pinMode(triggerPin, OUTPUT);
+    pinMode(echoPin, INPUT);
+  }
+
+  int getDistance() {
+    digitalWrite(triggerPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(triggerPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(triggerPin, LOW);
+
+    distance = pulseIn(echoPin, HIGH, 5800) * 0.017;
+    
+    if (distance == 0) {
+      distance = 100;
+    }
+    return distance;
+  }
+};
+
+struct IR {
+  int pin;
+
+  bool onGround;
+
+  IR(int pin) {
+    this->pin = pin;
+
+    pinMode(pin, INPUT_PULLUP);
+  }
+
+  bool isOnGround() {
+    onGround = digitalRead(pin) == HIGH;
+    return onGround;
+  }
+};
+
+struct Sensors {
+  IR leftIR;
+  IR rightIR;
+
+  Ultrasonic leftUltrasonic;
+  Ultrasonic middleUltrasonic;
+  Ultrasonic rightUltrasonic;
+
+  Sensors(int leftIRPin, int rightIRPin, 
+    int leftUltrasonicTriggerPin, int leftUltrasonicEchoPin,
+    int middleUltrasonicTriggerPin, int middleUltrasonicEchoPin,
+    int rightUltrasonicTriggerPin, int rightUltrasonicEchoPin)
+    : leftIR(leftIRPin), rightIR(rightIRPin),
+    leftUltrasonic(leftUltrasonicTriggerPin, leftUltrasonicEchoPin),
+    middleUltrasonic(middleUltrasonicTriggerPin, middleUltrasonicEchoPin),
+    rightUltrasonic(rightUltrasonicTriggerPin, rightUltrasonicEchoPin) {}
+};
+
+struct Robot {
+  Movement movement;
+  Sensors sensors;
+
+  Robot(int leftSpeedPin, int leftDirectionPin, int rightSpeedPin, int rightDirectionPin,
+    int leftIRPin, int rightIRPin, 
+    int leftUltrasonicTriggerPin, int leftUltrasonicEchoPin,
+    int middleUltrasonicTriggerPin, int middleUltrasonicEchoPin,
+    int rightUltrasonicTriggerPin, int rightUltrasonicEchoPin)
+    : movement(leftSpeedPin, leftDirectionPin, rightSpeedPin, rightDirectionPin),
+    sensors(leftIRPin, rightIRPin,
+    leftUltrasonicTriggerPin, leftUltrasonicEchoPin,
+    middleUltrasonicTriggerPin, middleUltrasonicEchoPin,
+    rightUltrasonicTriggerPin, rightUltrasonicEchoPin) {}
+};
+
+Robot robot(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 void setup(){
-  pinMode(right_speed_pin, OUTPUT);
-  pinMode(left_speed_pin, OUTPUT);
-  pinMode(right_direction_pin, OUTPUT);
-  pinMode(left_direction_pin, OUTPUT);
 }
 
 void loop() {
   // test movement
-  forward();
+  robot.movement.forward();
   delay(3000);
-  brake();
+  robot.movement.brake();
   delay(1000);
-  backward();
+  robot.movement.backward();
   delay(3000);
-  brake();
+  robot.movement.brake();
   delay(1000);
-  rotateLeft();
+  robot.movement.rotateLeft();
   delay(1000);
-  brake();
+  robot.movement.brake();
   delay(1000);
-  rotateRight();
+  robot.movement.rotateRight();
   delay(2000);
-  brake();
+  robot.movement.brake();
   delay(1000);
-  rotateLeft();
+  robot.movement.rotateLeft();
   delay(1000);
-  brake();
+  robot.movement.brake();
   delay(1000);
-}
-
-//--MOVEMENT----
-
-void setSpeed(int speed, int speed_pin, int direction_pin){
-    if (speed > 0) {
-      digitalWrite(direction_pin, HIGH);
-  } else {
-      digitalWrite(direction_pin, LOW);
-  } analogWrite(speed_pin, abs(speed));
-}
-
-// --add optional argument for time spent doing action (do not use delay)
-// moves robot according to x (rotation) and y (forward or backward) arguments
-// x and y are expected to be between -10 and 10 (inclusive)
-// the speeds of move will end up between -100 and 100
-void move(int x, int y){
-  setSpeed(x * abs(x) + y * abs(y), left_speed_pin, left_direction_pin);
-  setSpeed(-x * abs(x) + y * abs(y), right_speed_pin, right_direction_pin);
-}
-
-void brake(){
-  move(0, 0);
-}
-
-void forward(){
-  move(0, 7);
-}
-
-void backward(){
-  move(0, -7);
-}
-
-void rotateLeft(){
-  move(-7, 0);
-}
-
-void rotateRight(){
-  move(7, 0);
-}
-
-//--SENSORS----
-
-void readIR(){
-
-}
-
-int readUltrasonic(){
-  digitalWrite(trig, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trig, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trig, LOW);
-
-  int distance = pulseIn(echo, HIGH, 5800) * 0.017;
-  return distance;
 }
