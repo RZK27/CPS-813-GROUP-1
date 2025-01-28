@@ -38,12 +38,10 @@ struct Movement {
   Movement(int leftSpeedPin, int leftDirectionPin, int rightSpeedPin, int rightDirectionPin)
       : leftWheels(leftSpeedPin, leftDirectionPin), rightWheels(rightSpeedPin, rightDirectionPin) {}
 
-  int sqrt
-
   // --MAKE COMPATIBLE WITH CONTROLLER
   void move(int x, int y) {
     int leftSpeed = x * abs(x) + y * abs(y);
-    int rightSpeed = -x * abs(x) + y * abs(y)
+    int rightSpeed = -x * abs(x) + y * abs(y);
 
     leftSpeed = 10 * leftSpeed / abs(leftSpeed) * sqrt(abs(leftSpeed));
     rightSpeed = 10 * rightSpeed / abs(rightSpeed) * sqrt(abs(rightSpeed));
@@ -74,12 +72,13 @@ struct Movement {
 };
 
 struct Ultrasonic {
+  String name;
   int triggerPin;
   int echoPin;
-
   int distance;
   
-  Ultrasonic(int triggerPin, int echoPin) {
+  Ultrasonic(String name, int triggerPin, int echoPin) {
+    this->name = name;
     this->triggerPin = triggerPin;
     this->echoPin = echoPin;
     
@@ -101,22 +100,54 @@ struct Ultrasonic {
     }
     return distance;
   }
+
+  String toString() {
+    String toReturn = "";
+    toReturn.concat(name);
+    toReturn.concat(": ");
+    toReturn.concat(String(distance));
+    toReturn.concat(" cm -> ");
+
+    if (distance > 10){
+      toReturn.concat("🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩");
+    } else {
+      for (int i = 0; i < distance; i++){
+        toReturn.concat("🟥");
+      }
+    }
+    return toReturn;
+  }
 };
 
 struct IR {
+  String name;
   int pin;
-
   bool onGround;
 
-  IR(int pin) {
+  IR(String name, int pin) {
+    this->name = name;
     this->pin = pin;
 
     pinMode(pin, INPUT_PULLUP);
   }
 
+  // might be wrong
   bool isOnGround() {
     onGround = digitalRead(pin) == HIGH;
     return onGround;
+  }
+
+  String toString() {
+    String toReturn = "";
+    toReturn.concat(name);
+    toReturn.concat(": ");
+
+    if (isOnGround()) {
+      toReturn.concat("Clear!");
+    } else {
+      toReturn.concat("DANGER!");
+    }
+    return toReturn;
   }
 };
 
@@ -132,10 +163,10 @@ struct Sensors {
     int leftUltrasonicTriggerPin, int leftUltrasonicEchoPin,
     int middleUltrasonicTriggerPin, int middleUltrasonicEchoPin,
     int rightUltrasonicTriggerPin, int rightUltrasonicEchoPin)
-    : leftIR(leftIRPin), rightIR(rightIRPin),
-    leftUltrasonic(leftUltrasonicTriggerPin, leftUltrasonicEchoPin),
-    middleUltrasonic(middleUltrasonicTriggerPin, middleUltrasonicEchoPin),
-    rightUltrasonic(rightUltrasonicTriggerPin, rightUltrasonicEchoPin) {}
+    : leftIR("_LEFT IR", leftIRPin), rightIR("RIGHT IR: ", rightIRPin),
+    leftUltrasonic("__LEFT ULTRASONIC", leftUltrasonicTriggerPin, leftUltrasonicEchoPin),
+    middleUltrasonic("MIDDLE ULTRASONIC", middleUltrasonicTriggerPin, middleUltrasonicEchoPin),
+    rightUltrasonic("_RIGHT ULTRASONIC", rightUltrasonicTriggerPin, rightUltrasonicEchoPin) {}
 };
 
 struct Robot {

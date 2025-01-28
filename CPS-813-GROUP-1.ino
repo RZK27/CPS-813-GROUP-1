@@ -40,20 +40,8 @@ Robot robot (
 
 );
 
-void setup(){
-  Serial.begin(9600);
-  pinMode(ledPin, OUTPUT);
-  while (!Serial);
-  
-  enable_WiFi();
-  connect_WiFi();
-
-  server.begin();
-  printWifiStatus();
-}
-
-void loop() {
-  // test movement
+void testMovement() {
+// test movement
   robot.movement.forward();
   delay(3000);
   robot.movement.brake();
@@ -74,6 +62,22 @@ void loop() {
   delay(1000);
   robot.movement.brake();
   delay(1000);
+}
+
+void setup(){
+  Serial.begin(9600);
+  while (!Serial);
+  
+  enable_WiFi();
+  connect_WiFi();
+
+  server.begin();
+  printWifiStatus();
+}
+
+void loop() {
+  // testMovement();
+  
   client = server.available();
 
   if (client) {
@@ -150,24 +154,54 @@ void printWEB() {
             client.println("Content-type:text/html");
             client.println();
            
-            //send sensor data here
+            // Start of HTML content
+            client.println("<!DOCTYPE html>");
+            client.println("<html>");
+            client.println("<head>");
+            client.println("<title>Sensor Data</title>");
 
-            //create the buttons
-            client.print("Click <a href=\"/H\">here</a> turn the LED on<br>");
-            client.print("Click <a href=\"/L\">here</a> turn the LED off<br><br>");
-            
-            // wat is dis
-            int randomReading = analogRead(A1);
-            client.print("Random reading from analog pin: ");
-            client.print(randomReading);
-           
-            
-            
+            client.println("<style>");
+            client.println("body { font-family: Arial, sans-serif; text-align: center; }");
+            client.println("input { font-size: 1.2em; padding: 5px; width: 80%; margin-bottom: 10px; }");
+            client.println("</style>");
 
-            // The HTTP response ends with another blank line:
+            client.println("<h1>Robot Sensor Data</h1>");
+
+            // Left IR sensor data
+            client.print("<label>Left IR:</label><br>");
+            client.print("<input type='text' value='");
+            client.print(robot.sensors.leftIR.toString());
+            client.println("' readonly><br><br>");
+
+            // Right IR sensor data
+            client.print("<label>Right IR:</label><br>");
+            client.print("<input type='text' value='");
+            client.print(robot.sensors.rightIR.toString());
+            client.println("' readonly><br><br>");
+
+            // Left Ultrasonic sensor data
+            client.print("<label>Left Ultrasonic:</label><br>");
+            client.print("<input type='text' value='");
+            client.print(robot.sensors.leftUltrasonic.toString());
+            client.println("' readonly><br><br>");
+
+            // Middle Ultrasonic sensor data
+            client.print("<label>Middle Ultrasonic:</label><br>");
+            client.print("<input type='text' value='");
+            client.print(robot.sensors.middleUltrasonic.toString());
+            client.println("' readonly><br><br>");
+
+            // Right Ultrasonic sensor data
+            client.print("<label>Right Ultrasonic:</label><br>");
+            client.print("<input type='text' value='");
+            client.print(robot.sensors.rightUltrasonic.toString());
+            client.println("' readonly><br><br>");
+            
+            client.println("</body>");
+            client.println("</html>");
+
+            // End HTTP response
             client.println();
-            // break out of the while loop:
-            break;
           }
           else {      // if you got a newline, then clear currentLine:
             currentLine = "";
@@ -177,13 +211,7 @@ void printWEB() {
           currentLine += c;      // add it to the end of the currentLine
         }
 
-        if (currentLine.endsWith("GET /H")) {
-        digitalWrite(ledPin, HIGH);        
-        }
-        if (currentLine.endsWith("GET /L")) {
-        digitalWrite(ledPin, LOW);       
-        }
-
+        // analyze currentLine here for data
       }
     }
     // close the connection:
