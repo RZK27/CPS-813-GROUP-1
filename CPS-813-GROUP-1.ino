@@ -1,23 +1,25 @@
 #include "RobotSystem.h";
 #include <WiFiS3.h>
 
-char ssid[] = "";             //  your network SSID (name) between the " "
-char pass[] = "";      // your network password between the " "
+char ssid[] = "Mark";             //  your network SSID (name) between the " "
+char pass[] = "12345678";      // your network password between the " "
 int status = WL_IDLE_STATUS;      //connection status
 WiFiServer server(80);            //server socket
 
+const int MotorsEnable = 3;
+
 WiFiClient client = server.available();
 
-Robot robot (
+Robot robot ( MotorsEnable, 
 //  PINS:
 //    Movement:
 //      Wheels | Speed | Direction |
 //      _______|_______|___________|
 //      Left   |       |           |
-                 0,      0,
+                 6,      8,
 //      _______|_______|___________|
 //      Right  |       |           |
-                 0,      0,
+                 5,      7,
 //      _______|_______|___________|
 
 //    Sensors:
@@ -65,6 +67,7 @@ void testMovement() {
 }
 
 void setup(){
+
   Serial.begin(9600);
   while (!Serial);
   
@@ -207,13 +210,13 @@ void printWEB() {
         }
 
         // analyze currentLine here for data
-        Serial.println(currentLine);
 
         int leftBracketIndex = currentLine.indexOf('[');
         int rightBracketIndex = currentLine.indexOf(']');
 
         if (leftBracketIndex != -1 && rightBracketIndex != -1) {
           currentLine = currentLine.substring(leftBracketIndex + 1, rightBracketIndex);        
+                  Serial.println(currentLine);
 
           String tempNum = "";
           int dataIndex = 0;
@@ -232,9 +235,9 @@ void printWEB() {
               continue;
             } tempNum += c;
           }
-
+          
+          Serial.println(data[0]);
           robot.movement.move(data[0], data[1]);
-
         }
 
       }

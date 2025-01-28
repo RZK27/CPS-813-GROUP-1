@@ -35,8 +35,11 @@ struct Movement {
   Wheels leftWheels;
   Wheels rightWheels;
 
-  Movement(int leftSpeedPin, int leftDirectionPin, int rightSpeedPin, int rightDirectionPin)
-      : leftWheels(leftSpeedPin, leftDirectionPin), rightWheels(rightSpeedPin, rightDirectionPin) {}
+  Movement(int enableMovement, int leftSpeedPin, int leftDirectionPin, int rightSpeedPin, int rightDirectionPin) 
+      : leftWheels(leftSpeedPin, leftDirectionPin), rightWheels(rightSpeedPin, rightDirectionPin) {
+        pinMode(enableMovement, OUTPUT);
+
+        digitalWrite(enableMovement, HIGH); }
 
   // --MAKE COMPATIBLE WITH CONTROLLER
   void move(int x, int y) {
@@ -173,12 +176,12 @@ struct Robot {
   Movement movement;
   Sensors sensors;
 
-  Robot(int leftSpeedPin, int leftDirectionPin, int rightSpeedPin, int rightDirectionPin,
+  Robot(int enableMovement, int leftSpeedPin, int leftDirectionPin, int rightSpeedPin, int rightDirectionPin,
     int leftIRPin, int rightIRPin, 
     int leftUltrasonicTriggerPin, int leftUltrasonicEchoPin,
     int middleUltrasonicTriggerPin, int middleUltrasonicEchoPin,
     int rightUltrasonicTriggerPin, int rightUltrasonicEchoPin)
-    : movement(leftSpeedPin, leftDirectionPin, rightSpeedPin, rightDirectionPin),
+    : movement(enableMovement, leftSpeedPin, leftDirectionPin, rightSpeedPin, rightDirectionPin),
     sensors(leftIRPin, rightIRPin,
     leftUltrasonicTriggerPin, leftUltrasonicEchoPin,
     middleUltrasonicTriggerPin, middleUltrasonicEchoPin,
