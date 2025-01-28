@@ -1,5 +1,5 @@
 #include "RobotSystem.h";
-#include <WiFiNINA.h>
+#include <WiFiS3.h>
 
 char ssid[] = "";             //  your network SSID (name) between the " "
 char pass[] = "";      // your network password between the " "
@@ -111,11 +111,6 @@ void enable_WiFi() {
     Serial.println("Communication with WiFi module failed!");
     // don't continue
     while (true);
-  }
-
-  String fv = WiFi.firmwareVersion();
-  if (fv < "1.0.0") {
-    Serial.println("Please upgrade the firmware");
   }
 }
 
