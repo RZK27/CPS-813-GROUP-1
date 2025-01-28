@@ -212,6 +212,7 @@ void printWEB() {
         }
 
         // analyze currentLine here for data
+        Serial.println(currentLine);
       }
     }
     // close the connection:
