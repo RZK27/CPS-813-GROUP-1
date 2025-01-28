@@ -213,6 +213,35 @@ void printWEB() {
 
         // analyze currentLine here for data
         Serial.println(currentLine);
+
+        int leftBracketIndex = currentLine.indexOf('[');
+        int rightBracketIndex = currentLine.indexOf(']');
+
+        if (leftBracketIndex != -1 && rightBracketIndex != -1) {
+          currentLine = currentLine.substring(leftBracketIndex + 1, rightBracketIndex);        
+
+          String tempNum = "";
+          int dataIndex = 0;
+          int data[20];
+
+          for (int i = 0; i < currentLine.length(); i++) {
+
+            char c = currentLine[i];
+
+            if (c == ',') {
+              data[dataIndex] = tempNum.toInt();
+              tempNum = "";
+              dataIndex++;
+              continue;
+            } if (c == ' ') {
+              continue;
+            } tempNum += c;
+          }
+
+          robot.movement.move(data[0], data[1]);
+
+        }
+
       }
     }
     // close the connection:
