@@ -149,54 +149,23 @@ void printWEB() {
             // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
             // and a content-type so the client knows what's coming, then a blank line:
             client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/html");
+            client.println("Content-type:text/plain");
             client.println();
-           
-            // Start of HTML content
-            client.println("<!DOCTYPE html>");
-            client.println("<html>");
-            client.println("<head>");
-            client.println("<title>Sensor Data</title>");
-
-            client.println("<style>");
-            client.println("body { font-family: Arial, sans-serif; text-align: center; }");
-            client.println("input { font-size: 1.2em; padding: 5px; width: 80%; margin-bottom: 10px; }");
-            client.println("</style>");
-
-            client.println("<h1>Robot Sensor Data</h1>");
 
             // Left IR sensor data
-            client.print("<label>Left IR:</label><br>");
-            client.print("<input type='text' value='");
             client.print(robot.sensors.leftIR.toString());
-            client.println("' readonly><br><br>");
 
             // Right IR sensor data
-            client.print("<label>Right IR:</label><br>");
-            client.print("<input type='text' value='");
             client.print(robot.sensors.rightIR.toString());
-            client.println("' readonly><br><br>");
 
             // Left Ultrasonic sensor data
-            client.print("<label>Left Ultrasonic:</label><br>");
-            client.print("<input type='text' value='");
             client.print(robot.sensors.leftUltrasonic.toString());
-            client.println("' readonly><br><br>");
 
             // Middle Ultrasonic sensor data
-            client.print("<label>Middle Ultrasonic:</label><br>");
-            client.print("<input type='text' value='");
             client.print(robot.sensors.middleUltrasonic.toString());
-            client.println("' readonly><br><br>");
 
             // Right Ultrasonic sensor data
-            client.print("<label>Right Ultrasonic:</label><br>");
-            client.print("<input type='text' value='");
             client.print(robot.sensors.rightUltrasonic.toString());
-            client.println("' readonly><br><br>");
-            
-            client.println("</body>");
-            client.println("</html>");
 
             // End HTTP response
             client.println();
