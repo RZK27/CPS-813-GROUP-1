@@ -1,14 +1,24 @@
 #include "RobotSystem.h";
 #include <WiFiS3.h>
+#include <WebSocketServer.h>
+#include "index.h"
 
-char ssid[] = "Mark";             //  your network SSID (name) between the " "
+char ssid[] = "Clark";         //  your network SSID (name) between the " "
 char pass[] = "12345678";      // your network password between the " "
-int status = WL_IDLE_STATUS;      //connection status
+
+using namespace net;
+
+#define CMD_STOP 0
+#define CMD_FORWARD 1
+#define CMD_BACKWARD 2
+#define CMD_LEFT 4
+#define CMD_RIGHT 8
+
+WebSocketServer webSocket(81);
 WiFiServer server(80);            //server socket
+int status = WL_IDLE_STATUS;      //connection status
 
 const int MotorsEnable = 3;
-
-WiFiClient client = server.available();
 
 Robot robot ( MotorsEnable, 
 //  PINS:
@@ -25,7 +35,7 @@ Robot robot ( MotorsEnable,
 //    Sensors:
 //      IRs | Left | Right |
 //      ____|______|_______|
-              0,     0,
+              2,     4,
 //      ____|______|_______|
 
 //      Ultrasonics | Trigger | Echo |
@@ -34,7 +44,7 @@ Robot robot ( MotorsEnable,
                       0,        0,
 //      ____________|_________|______|
 //      Middle      |         |      |
-                      0,        0,
+                      13,        12,
 //      ____________|_________|______|
 //      Right       |         |      |
                       0,        0
@@ -69,150 +79,152 @@ void testMovement() {
 void setup(){
 
   Serial.begin(9600);
-  while (!Serial);
   
-  enable_WiFi();
-  connect_WiFi();
+  String fv = WiFi.firmwareVersion();
+  if (fv < WIFI_FIRMWARE_LATEST_VERSION)
+    Serial.println("Please upgrade the firmware");
 
-  server.begin();
-  printWifiStatus();
-}
-
-void loop() {
-  // testMovement();
-  
-  client = server.available();
-
-  if (client) {
-    printWEB();
-  }
-}
-
-void printWifiStatus() {
-  // print the SSID of the network you're attached to:
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
-
-  // print your board's IP address:
-  IPAddress ip = WiFi.localIP();
-  Serial.print("IP Address: ");
-  Serial.println(ip);
-
-  // print the received signal strength:
-  long rssi = WiFi.RSSI();
-  Serial.print("signal strength (RSSI):");
-  Serial.print(rssi);
-  Serial.println(" dBm");
-
-  Serial.print("To see this page in action, open a browser to http://");
-  Serial.println(ip);
-}
-
-void enable_WiFi() {
-  // check for the WiFi module:
-  if (WiFi.status() == WL_NO_MODULE) {
-    Serial.println("Communication with WiFi module failed!");
-    // don't continue
-    while (true);
-  }
-}
-
-void connect_WiFi() {
-  // attempt to connect to Wifi network:
+  // attempt to connect to WiFi network:
   while (status != WL_CONNECTED) {
     Serial.print("Attempting to connect to SSID: ");
-    Serial.println(ssid);
+    Serial.println(pass);
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
     status = WiFi.begin(ssid, pass);
 
-    // wait 10 seconds for connection:
-    delay(10000);
+    // wait 4 seconds for connection:
+    delay(4000);
+  }
+
+    // print your board's IP address:
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+
+  server.begin();
+  Serial.println("hi");
+  webSocket.onConnection([](WebSocket &ws) {
+    Serial.println("hoo");
+
+    const auto protocol = ws.getProtocol();
+    if (protocol) {
+      Serial.print(F("Client protocol: "));
+      Serial.println(protocol);
+    }
+
+    ws.onMessage([](WebSocket &ws, const WebSocket::DataType dataType,
+                    const char *message, uint16_t length) {
+      String cmd_str = String((char *)message);
+      int command = cmd_str.toInt();
+      Serial.print("command: ");
+      Serial.println(command);
+
+      switch (dataType) {
+        case WebSocket::DataType::TEXT:
+          switch (command) {
+            case CMD_STOP:
+              Serial.println("Stop");
+              CAR_stop();
+              break;
+            case CMD_FORWARD:
+              Serial.println("Move Forward");
+              CAR_moveForward();
+              break;
+            case CMD_BACKWARD:
+              Serial.println("Move Backward");
+              CAR_moveBackward();
+              break;
+            case CMD_LEFT:
+              Serial.println("Turn Left");
+              CAR_turnLeft();
+              break;
+            case CMD_RIGHT:
+              Serial.println("Turn Right");
+              CAR_turnRight();
+              break;
+
+            default:
+              Serial.println("Unknown command");
+          }
+
+          break;
+        case WebSocket::DataType::BINARY:
+          Serial.println(F("Received binary data"));
+          break;
+      }
+    });
+
+    ws.onClose([](WebSocket &, const WebSocket::CloseCode, const char *,
+                  uint16_t) {
+      Serial.println(F("Disconnected"));
+    });
+
+    Serial.print(F("New WebSocket Connnection from client: "));
+    Serial.println(ws.getRemoteIP());
+  });
+
+  webSocket.begin();
+
+}
+
+
+
+void loop() {
+  webSocket.listen();
+
+  // listen for incoming clients
+  WiFiClient client = server.available();
+  if (client) {
+    // read the HTTP request header line by line
+    while (client.connected()) {
+      if (client.available()) {
+        String HTTP_header = client.readStringUntil('\n');  // read the header line of HTTP request
+
+        if (HTTP_header.equals("\r"))  // the end of HTTP request
+          break;
+        
+        Serial.println("yea");
+
+        Serial.print("<< ");
+        Serial.println(HTTP_header);  // print HTTP request to Serial Monitor
+      }
+    }
+
+    // send the HTTP response header
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: text/html");
+    client.println("Connection: close");  // the connection will be closed after completion of the response
+    client.println();                     // the separator between HTTP header and body
+
+    String html = String(HTML_CONTENT);
+
+    client.println(html);
+    client.flush();
+
+    // give the web browser time to receive the data
+    delay(100);
+
+    // close the connection:
+    client.stop();
   }
 }
 
-void printWEB() {
 
-  if (client) {                             // if you get a client,
-    Serial.println("new client");           // print a message out the serial port
-    String currentLine = "";                // make a String to hold incoming data from the client
-    
-    while (client.connected()) {            // loop while the client's connected
-      if (client.available()) {             // if there's bytes to read from the client,
-        char c = client.read();             // read a byte, then
-        Serial.write(c);                    // print it out the serial monitor
-        if (c == '\n') {                    // if the byte is a newline character
 
-          // if the current line is blank, you got two newline characters in a row.
-          // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) {
+void CAR_moveForward() {
+  robot.movement.forward();
+}
 
-            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-            // and a content-type so the client knows what's coming, then a blank line:
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/plain");
-            client.println();
+void CAR_moveBackward() {
+  robot.movement.backward();
+}
 
-            // Left IR sensor data
-            client.print(robot.sensors.leftIR.toString());
+void CAR_turnLeft() {
+  robot.movement.rotateLeft();
+}
 
-            // Right IR sensor data
-            client.print(robot.sensors.rightIR.toString());
+void CAR_turnRight() {
+  robot.movement.rotateRight();
+}
 
-            // Left Ultrasonic sensor data
-            client.print(robot.sensors.leftUltrasonic.toString());
-
-            // Middle Ultrasonic sensor data
-            client.print(robot.sensors.middleUltrasonic.toString());
-
-            // Right Ultrasonic sensor data
-            client.print(robot.sensors.rightUltrasonic.toString());
-
-            // End HTTP response
-            client.println();
-          }
-          else {      // if you got a newline, then clear currentLine:
-            currentLine = "";
-          }
-        }
-        else if (c != '\r') {    // if you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
-        }
-
-        // analyze currentLine here for data
-
-        int leftBracketIndex = currentLine.indexOf('[');
-        int rightBracketIndex = currentLine.indexOf(']');
-
-        if (leftBracketIndex != -1 && rightBracketIndex != -1) {
-          currentLine = currentLine.substring(leftBracketIndex + 1, rightBracketIndex);        
-                  Serial.println(currentLine);
-
-          String tempNum = "";
-          int dataIndex = 0;
-          int data[20];
-
-          for (int i = 0; i < currentLine.length(); i++) {
-
-            char c = currentLine[i];
-
-            if (c == ',') {
-              data[dataIndex] = tempNum.toInt();
-              tempNum = "";
-              dataIndex++;
-              continue;
-            } if (c == ' ') {
-              continue;
-            } tempNum += c;
-          }
-          
-          Serial.println(data[0]);
-          robot.movement.move(data[0], data[1]);
-        }
-
-      }
-    }
-    // close the connection:
-    client.stop();
-    Serial.println("client disconnected");
-  }
+void CAR_stop() {
+  robot.movement.brake();
 }

@@ -8,7 +8,7 @@ arduino_url = "http://192.168.0.0"  # Example IP address
 def send_command_to_arduino(command):
     try:
         # Send a POST request to the Arduino with the command
-        response = requests.post(arduino_url, command)
+        response = requests.post(arduino_url, command, timeout=1)
         return(response.text)
     except Exception as e:
         return(f"Error sending command: {e}")
@@ -18,13 +18,12 @@ def clear_and_print(message):
     os.system('cls' if os.name == 'nt' else 'clear')
     # Print the message
     print(message)
-import keyboard
 
 # Declare the global speed variable
 speed = 0
 
 def on_key_event(e):
-    data = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    data = [0,0]
 
     if keyboard.is_pressed('s'):
         speed = 8
@@ -42,6 +41,8 @@ def on_key_event(e):
 
     reponse_text = send_command_to_arduino(str(data))
     clear_and_print(reponse_text)
+    print('')
+    print(data)
 
 # Register key event listener
 keyboard.hook(on_key_event)
