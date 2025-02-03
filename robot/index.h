@@ -99,16 +99,11 @@ function init()
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 
-var keyCommandMap = {var keyCommandMap = {
+var keyCommandMap = {
   "ArrowUp": CMD_FORWARD,
   "ArrowDown": CMD_BACKWARD,
   "ArrowLeft": CMD_LEFT,
-  "ArrowRight": CMD_RIGHT,
-  "w": CMD_FORWARD,
-  "s": CMD_BACKWARD,
-  "a": CMD_RIGHT,
-  "d": CMD_LEFT
-};
+  "ArrowRight": CMD_RIGHT
 };
 
 function handleKeyDown(event) {
