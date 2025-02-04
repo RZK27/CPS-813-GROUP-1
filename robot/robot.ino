@@ -1,287 +1,151 @@
-#include "RobotSystem.h"
-#include <WiFiS3.h>
+#include "WiFiS3.h"
 #include <WebSocketServer.h>
-#include "index.h"
+#include <ArduinoJson.h>
+#include "RobotSystem.h"
 
-char ssid[] = "Clark";     //  your network SSID (name) between the " "
-char pass[] = "12345678";  // your network password between the " "
+char ssid[] = "Spark";
+char pass[] = "12345678";
 
-using namespace net;
+int status = WL_IDLE_STATUS;
 
-#define CMD_STOP 0
-#define CMD_FORWARD 1
-#define CMD_BACKWARD 2
-#define CMD_LEFT 4
-#define CMD_RIGHT 8
-#define RX_PIN 0 // Pin for receiving data from ESP32-CAM
-#define TX_PIN 1 // Pin for transmitting data to ESP32-CAM
-
-WebSocketServer webSocket(81);
-WiFiServer server(80);        //server socket
-WiFiServer videoServer(82);   // Server for MJPEG video stream
-int status = WL_IDLE_STATUS;  //connection status
-
-const int MotorsEnable = 3;
-const int FRAME_BUFFER_SIZE = 8192; // Buffer for JPEG frames
-char frameBuffer[FRAME_BUFFER_SIZE];
-int frameSize = 0;
-
-Robot robot(MotorsEnable,
+Robot robot = Robot(
             //  PINS:
             //    Movement:
+            //      Enable:
+                      3,
+
             //      Wheels | Speed | Direction |
             //      _______|_______|___________|
             //      Left   |       |           |
-                                6, 8,
+                              6,      8,
             //      _______|_______|___________|
             //      Right  |       |           |
-                                 5, 7,
+                              5,      7,
             //      _______|_______|___________|
 
             //    Sensors:
             //      IRs | Left | Right |
             //      ____|______|_______|
-            2, 4,
+                           2,     4,
             //      ____|______|_______|
 
             //      Ultrasonics | Trigger | Echo |
             //      ____________|_________|______|
             //      Left        |         |      |
-            0, 0,
+                                   0,        0,
             //      ____________|_________|______|
             //      Middle      |         |      |
-            13, 12,
+                                   13,       12,
             //      ____________|_________|______|
             //      Right       |         |      |
-            0, 0
+                                   0,        0
             //      ____________|_________|______|
 );
 
-void testMovement() {
-  // test movement
-  robot.movement.forward();
-  delay(3000);
-  robot.movement.brake();
-  delay(1000);
-  robot.movement.backward();
-  delay(3000);
-  robot.movement.brake();
-  delay(1000);
-  robot.movement.rotateLeft();
-  delay(1000);
-  robot.movement.brake();
-  delay(1000);
-  robot.movement.rotateRight();
-  delay(2000);
-  robot.movement.brake();
-  delay(1000);
-  robot.movement.rotateLeft();
-  delay(1000);
-  robot.movement.brake();
-  delay(1000);
-}
+using namespace net;
+WebSocketServer server{80};
 
 void setup() {
-  // Serial.begin(9600);
+  //Initialize serial and wait for port to open:
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+  Serial.println("Access Point Web Socket");
 
-  Serial1.begin(115200);
-
-  String fv = WiFi.firmwareVersion();
-  if (fv < WIFI_FIRMWARE_LATEST_VERSION)
-    Serial.println("Please upgrade the firmware");
-
-  // attempt to connect to WiFi network:
-  while (status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to SSID: ");
-    Serial.println(pass);
-    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    status = WiFi.begin(ssid, pass);
-
-    // wait 4 seconds for connection:
-    delay(4000);
+  // check for the WiFi module:
+  if (WiFi.status() == WL_NO_MODULE) {
+    Serial.println("Communication with WiFi module failed!");
+    // don't continue
+    while (true);
   }
 
-  // print your board's IP address:
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
+  
+  String fv = WiFi.firmwareVersion();
+  if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
+    Serial.println("Please upgrade the firmware");
+  }
 
+  // by default the local IP address will be 192.168.4.1
+  // you can override it with the following:
+  WiFi.config(IPAddress(192,48,56,2));
+
+  // print the network name (SSID);
+  Serial.print("Creating access point named: ");
+  Serial.println(ssid);
+
+  // Create open network. Change this line if you want to create an WEP network:
+  status = WiFi.beginAP(ssid, pass);
+  if (status != WL_AP_LISTENING) {
+    Serial.println("Creating access point failed");
+    // don't continue
+    while (true);
+  }
+
+  // wait 10 seconds for connection:
+  delay(10000);
+
+  // start the web server on port 80
   server.begin();
-  videoServer.begin();  // Start video server
 
-  webSocket.onConnection([](WebSocket &ws) {
-    Serial.println("hoo");
+  // you're connected now, so print out the status
+  printWiFiStatus();
 
-    const auto protocol = ws.getProtocol();
-    if (protocol) {
-      Serial.print(F("Client protocol: "));
-      Serial.println(protocol);
-    }
-
-    ws.onMessage([](WebSocket &ws, const WebSocket::DataType dataType,
-                    const char *message, uint16_t length) {
-      String cmd_str = String((char *)message);
-      int command = cmd_str.toInt();
-      Serial.print("command: ");
-      Serial.println(command);
-
-      switch (dataType) {
-        case WebSocket::DataType::TEXT:
-          switch (command) {
-            case CMD_STOP:
-              Serial.println("Stop");
-              CAR_stop();
-              break;
-            case CMD_FORWARD:
-              Serial.println("Move Forward");
-              CAR_moveForward();
-              break;
-            case CMD_BACKWARD:
-              Serial.println("Move Backward");
-              CAR_moveBackward();
-              break;
-            case CMD_LEFT:
-              Serial.println("Turn Left");
-              CAR_turnLeft();
-              break;
-            case CMD_RIGHT:
-              Serial.println("Turn Right");
-              CAR_turnRight();
-              break;
-
-            default:
-              Serial.println("Unknown command");
-          }
-
-          break;
-        case WebSocket::DataType::BINARY:
-          Serial.println(F("Received binary data"));
-          break;
-      }
+  
+  server.onConnection([](WebSocket &ws) {    // where the magic happens
+    const char sendHTML[] = "hi";
+    ws.send(WebSocket::DataType::TEXT, sendHTML, strlen(sendHTML));
+    ws.onMessage([](WebSocket &ws, const WebSocket::DataType dataType, const char *message, uint16_t length) {
+      handleWebSocketMessage(message, robot);
     });
-
-    ws.onClose([](WebSocket &, const WebSocket::CloseCode, const char *,
-                  uint16_t) {
-      Serial.println(F("Disconnected"));
-    });
-
-    Serial.print(F("New WebSocket Connnection from client: "));
-    Serial.println(ws.getRemoteIP());
   });
 
-  webSocket.begin();
+  server.begin();
 }
-
 
 void loop() {
-  webSocket.listen();
-
-  // Handle video streaming clients
-  handleVideoStream();
-
-  // listen for incoming clients
-  handleWebServerClient();
+  server.listen();
 }
 
-void handleVideoStream() {
-  WiFiClient videoClient = videoServer.available();
+void printWiFiStatus() {
+  // print the SSID of the network you're attached to:
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
 
-  if (videoClient) {
-    Serial.println("New video client connected");
+  // print your WiFi shield's IP address:
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
 
-    // Send MJPEG headers
-    videoClient.println("HTTP/1.1 200 OK");
-    videoClient.println("Content-Type: multipart/x-mixed-replace; boundary=frame");
-    videoClient.println();
+  // print where to go in a browser:
+  Serial.print("To see this page in action, open a browser to http://");
+  Serial.println(ip);
 
-    while (videoClient.connected()) {
-      if (readFrameFromESP32()) {
-        // Send frame over HTTP
-        videoClient.println("--frame");
-        videoClient.println("Content-Type: image/jpeg");
-        videoClient.println("Content-Length: " + String(frameSize));
-        videoClient.println();
-        videoClient.write((const uint8_t *)frameBuffer, frameSize);
-        videoClient.println();
-        delay(100); // Frame rate control
-      }
-    }
-    videoClient.stop();
-    Serial.println("Video client disconnected");
-  }
 }
 
-bool readFrameFromESP32() {
-  bool frameStartDetected = false;
-  frameSize = 0;
+void handleWebSocketMessage(const char *message, Robot robot) {
+  StaticJsonDocument<200> jsonDoc;
 
-  while (Serial1.available()) {
-    char byte = Serial1.read();
-    if (!frameStartDetected) {
-      // Detect JPEG SOI marker (start of image 0xFFD8)
-      if ((uint8_t)byte == 0xFF && Serial1.peek() == 0xD8) {
-        frameStartDetected = true;
-        frameBuffer[frameSize++] = byte;
-      }
-    } else {
-      if (frameSize < FRAME_BUFFER_SIZE) {
-        frameBuffer[frameSize++] = byte;
-        // Detect JPEG EOI marker (end of image 0xFFD9)
-        if ((uint8_t)byte == 0xD9 && frameBuffer[frameSize - 2] == 0xFF) {
-          return true;
-        }
-      } else {
-        break; // Frame size exceeds buffer limit
-      }
-    }
+  // Attempt to parse the JSON string
+  DeserializationError error = deserializeJson(jsonDoc, message);
+  if (error) {
+    Serial.print(F("JSON parsing failed: "));
+    Serial.println(error.c_str());
+    return;
   }
 
-  frameSize = 0; // Reset if no complete frame is detected
-  return false;
-}
+  // Extract values from the JSON document
+  int x = jsonDoc["axis_x"];
+  int y = jsonDoc["axis_y"];
+  y = -y;
+  bool button_a = jsonDoc["button_a"];
 
-void handleWebServerClient() {
-  WiFiClient client = server.available();
-  if (client) {
-    while (client.connected()) {
-      if (client.available()) {
-        String HTTP_header = client.readStringUntil('\n');
-        if (HTTP_header.equals("\r")) break;
+  Serial.print("X: ");
+  Serial.println(x);
+  Serial.print("Y: ");
+  Serial.println(y);
+  Serial.print("A Pressed: ");
+  Serial.println(button_a ? "Yes" : "No");
 
-        Serial.print("<< ");
-        Serial.println(HTTP_header);
-      }
-    }
-
-    // Send the control page HTML
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: text/html");
-    client.println("Connection: close");
-    client.println();
-
-    String html = String(HTML_CONTENT);
-    client.println(html);
-    client.flush();
-    delay(100);
-    client.stop();
-  }
-}
-
-void CAR_moveForward() {
-  robot.movement.forward();
-}
-
-void CAR_moveBackward() {
-  robot.movement.backward();
-}
-
-void CAR_turnLeft() {
-  robot.movement.rotateLeft();
-}
-
-void CAR_turnRight() {
-  robot.movement.rotateRight();
-}
-
-void CAR_stop() {
-  robot.movement.brake();
+  robot.movement.move(x, y);
 }

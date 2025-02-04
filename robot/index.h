@@ -150,7 +150,7 @@ function wc_onclick()
 {
   if(ws == null)
   {
-    ws = new WebSocket("ws://" + window.location.host + ":81");
+    ws = new WebSocket("ws://" + window.location.host + ":8080");
     document.getElementById("ws_state").innerHTML = "CONNECTING";
     
     ws.onopen = ws_onopen;

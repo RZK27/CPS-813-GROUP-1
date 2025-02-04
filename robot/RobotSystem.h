@@ -46,8 +46,8 @@ struct Movement {
     int leftSpeed = x * abs(x) + y * abs(y);
     int rightSpeed = -x * abs(x) + y * abs(y);
 
-    leftSpeed = 10 * leftSpeed / abs(leftSpeed) * sqrt(abs(leftSpeed));
-    rightSpeed = 10 * rightSpeed / abs(rightSpeed) * sqrt(abs(rightSpeed));
+    leftSpeed = 15 * leftSpeed / abs(leftSpeed) * sqrt(abs(leftSpeed));
+    rightSpeed = 15 * rightSpeed / abs(rightSpeed) * sqrt(abs(rightSpeed));
 
     leftWheels.setSpeed(leftSpeed);
     rightWheels.setSpeed(rightSpeed);
