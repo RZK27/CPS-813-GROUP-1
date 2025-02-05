@@ -2,6 +2,10 @@
 #include <WebSocketServer.h>
 #include <ArduinoJson.h>
 #include "RobotSystem.h"
+#include <Servo.h>
+
+Servo camServo;
+// Servo camServo2;
 
 char ssid[] = "Spark";
 char pass[] = "12345678";
@@ -47,10 +51,26 @@ WebSocketServer server{80};
 
 void setup() {
   //Initialize serial and wait for port to open:
-  Serial.begin(9600);
+  //Serial.begin(9600);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
+
+  camServo.attach(10);
+  camServo.write(90);
+  // camServo2.attach(11);
+  // camServo.write(90);
+
+  for (int pos = 0; pos <= 90; pos += 1) { // goes from 0 degrees to 180 degrees
+
+    // in steps of 1 degree
+
+    // camServo2.write(pos);              // tell servo to go to position in variable 'pos'
+
+    // delay(15);                       // waits 15ms for the servo to reach the position
+
+  }
+
   Serial.println("Access Point Web Socket");
 
   // check for the WiFi module:
@@ -135,8 +155,10 @@ void handleWebSocketMessage(const char *message, Robot robot) {
   }
 
   // Extract values from the JSON document
-  int x = jsonDoc["axis_x"];
-  int y = jsonDoc["axis_y"];
+  int x = jsonDoc["ls_x"];
+  int y = jsonDoc["ls_y"];
+  int cam = jsonDoc["rs_x"];
+  // int cam2 = jsonDoc["rs_y"];
   y = -y;
   bool button_a = jsonDoc["button_a"];
 
@@ -148,4 +170,7 @@ void handleWebSocketMessage(const char *message, Robot robot) {
   Serial.println(button_a ? "Yes" : "No");
 
   robot.movement.move(x, y);
+  camServo.write(cam + 90);
+  // camServo2.write(cam2 + 90);
+
 }

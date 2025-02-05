@@ -32,9 +32,10 @@ async def send_controller_data(websocket):
 
         # Capture joystick data if available
         if joystick:
-            data['axis_x'] = round(joystick.get_axis(0) * 10)  # Left joystick X
-            data['axis_y'] = round(joystick.get_axis(1) * 10)  # Left joystick Y
-            data['button_a'] = joystick.get_button(0)  # Button A
+            data['ls_x'] = round(joystick.get_axis(0) * 10)  # Left joystick X
+            data['ls_y'] = round(joystick.get_axis(1) * 10)  # Left joystick Y
+            data['rs_x'] = -round(joystick.get_axis(2) * 90)  # Right joystick Y
+            data['rs_y'] = -round(joystick.get_axis(3) * 15)  # Right joystick Y
         else:
             # Use keyboard as a fallback
             keys = pygame.key.get_pressed()
