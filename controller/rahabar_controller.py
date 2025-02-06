@@ -5,6 +5,8 @@ import numpy as np
 import pygame
 import sys
 import json
+import struct
+import os
 
 # WebSocket server details
 WS_SERVER_URL = "ws://192.48.56.2:80"  # Replace with your Arduino's WebSocket server address
@@ -22,7 +24,7 @@ else:
     joystick = None
 
 # Create an OpenCV window for video feed
-cv2.namedWindow("Arduino Video Feed")
+# cv2.namedWindow("Arduino Video Feed")
 
 async def send_controller_data(websocket):
     """Capture joystick or keyboard input and send to WebSocket."""
@@ -46,29 +48,32 @@ async def send_controller_data(websocket):
 
         # Send controller input data
         json_data = json.dumps(data)  # Convert dict to JSON string
-        print(json_data)
+        # print(json_data)
         await websocket.send(json_data)
-        await asyncio.sleep(0.05)  # Avoid sending data too frequently
+        await asyncio.sleep(0.1)  # Avoid sending data too frequently
 
-async def receive_video_feed(websocket):
+async def receive_data(websocket):
     """Receive video frames from the WebSocket and display them using OpenCV."""
     try:
         while True:
             # Receive a message from the WebSocket
             message = await websocket.recv()
 
-            # Assume the message is a JPEG-encoded frame (bytes)
-            frame_data = np.frombuffer(message, dtype=np.uint8)
-            frame = cv2.imdecode(frame_data, cv2.IMREAD_COLOR)
-            if frame is not None:
-                frame = cv2.resize(frame, (FRAME_WIDTH, FRAME_HEIGHT))
-                cv2.imshow("Arduino Video Feed", frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+            # Assume the message ultrasonic string
+            distance = struct.unpack('<i', message)[0]
+            if distance < 20:
+                square = '🟥'
+            else:
+                square = '🟩'
+
+            toPrint = f"{square * min(40, distance)}\n{distance} cm"
+
+            os.system('cls')
+            print(toPrint)
+
+
     except Exception as e:
-        print(f"Error receiving video feed: {e}")
-    finally:
-        cv2.destroyAllWindows()
+        print(f"Error receiving ultrasonic feed: {e}")
 
 async def main():
     async with websockets.connect(WS_SERVER_URL) as websocket:
@@ -76,7 +81,7 @@ async def main():
         # Run send and receive tasks concurrently
         await asyncio.gather(
             send_controller_data(websocket),
-            # receive_video_feed(websocket)
+            receive_data(websocket)
         )
 
 if __name__ == "__main__":

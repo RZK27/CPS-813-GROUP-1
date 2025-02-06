@@ -51,7 +51,7 @@ WebSocketServer server{80};
 
 void setup() {
   //Initialize serial and wait for port to open:
-  //Serial.begin(9600);
+  // Serial.begin(9600);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
@@ -113,10 +113,13 @@ void setup() {
 
   
   server.onConnection([](WebSocket &ws) {    // where the magic happens
-    const char sendHTML[] = "hi";
-    ws.send(WebSocket::DataType::TEXT, sendHTML, strlen(sendHTML));
     ws.onMessage([](WebSocket &ws, const WebSocket::DataType dataType, const char *message, uint16_t length) {
       handleWebSocketMessage(message, robot);
+       // Assume the ultrasonic sensor reading is an integer
+        int ultrasonicReading = robot.sensors.middleUltrasonic.getDistance();
+
+        // Send the integer as binary data
+        ws.send(WebSocket::DataType::BINARY, (const char*)&ultrasonicReading, sizeof(ultrasonicReading));
     });
   });
 

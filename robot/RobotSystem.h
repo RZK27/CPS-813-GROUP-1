@@ -105,19 +105,21 @@ struct Ultrasonic {
   }
 
   String toString() {
+    distance = getDistance();
     String toReturn = "";
     toReturn.concat(name);
     toReturn.concat(": ");
     toReturn.concat(String(distance));
     toReturn.concat(" cm -> ");
 
-    if (distance > 10){
+    if (distance > 10 || distance == 0){
       toReturn.concat("🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩");
     } else {
       for (int i = 0; i < distance; i++){
         toReturn.concat("🟥");
       }
     }
+    Serial.println(toReturn);
     return toReturn;
   }
 };
